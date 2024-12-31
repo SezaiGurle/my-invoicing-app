@@ -10,17 +10,20 @@ import Invoice from "./Invoice";
 export default async function InvoicePage({ params }: { params: { invoiceId: string } }) {
     const { userId, orgId } = await auth();
 
+    // Eğer kullanıcı yoksa `notFound` sayfasına yönlendir
     if (!userId) return notFound();
 
-    const { invoiceId: rawInvoiceId } = await params; // Ensure `params` is awaited
-    const invoiceId = Number.parseInt(rawInvoiceId);
+    // `params`'den gelen invoiceId'yi doğrula
+    const invoiceId = Number(params.invoiceId);
 
     if (isNaN(invoiceId)) {
         throw new Error("Invalid Invoice ID");
     }
+
     let result;
 
-    if ( orgId ) {
+    if (orgId) {
+        // Organizasyon ID'si mevcutsa sorguyu buna göre yap
         [result] = await db
             .select()
             .from(Invoices)
@@ -32,7 +35,8 @@ export default async function InvoicePage({ params }: { params: { invoiceId: str
                 )
             )
             .limit(1);
-    }else {
+    } else {
+        // Organizasyon ID'si yoksa sorguyu kullanıcı ID'sine göre yap
         [result] = await db
             .select()
             .from(Invoices)
@@ -47,16 +51,16 @@ export default async function InvoicePage({ params }: { params: { invoiceId: str
             .limit(1);
     }
 
-
+    // Eğer fatura bulunamazsa `notFound` sayfasına yönlendir
     if (!result) {
-        notFound();
+        return notFound();
     }
 
-    const invoices = {
+    const invoiceData = {
         ...result.invoices,
-        customer: result.customers
-    }
+        customer: result.customers,
+    };
 
-    return <Invoice invoice={invoices} />;
+    // Fatura bileşenini render et
+    return <Invoice invoice={invoiceData} />;
 }
-
