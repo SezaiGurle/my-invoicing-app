@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 
-import createPayment,{ updateStatusAction } from "@/app/actions";
+import{createPayment, updateStatusAction } from "@/app/actions";
 import { db } from "@/db";
 import { notFound } from "next/navigation";
 
