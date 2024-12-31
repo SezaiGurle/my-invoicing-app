@@ -1,70 +1,62 @@
 import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
+
 import { db } from "@/db";
 import { Customers, Invoices } from "@/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
+
 import Invoice from "./Invoice";
 
-// Define the params interface following Next.js 13+ conventions
-interface InvoicePageProps {
-  params: {
-    invoiceId: string; // Ensure this matches the route structure
-  };
-  searchParams?: { [key: string]: string | string[] | undefined };
-}
+export default async function InvoicePage({ params }: { params: { invoiceId: string } }) {
+    const { userId, orgId } = await auth();
 
-export default async function InvoicePage({
-  params,
-}: InvoicePageProps) {
-  // Input validation
-  if (!params?.invoiceId) {
-    throw new Error("Missing invoiceId parameter");
-  }
+    if (!userId) return notFound();
 
-  const invoiceId = parseInt(params.invoiceId, 10);
+    const { invoiceId: rawInvoiceId } = await params; // Ensure `params` is awaited
+    const invoiceId = Number.parseInt(rawInvoiceId);
 
-  if (isNaN(invoiceId)) {
-    throw new Error(`Invalid invoice ID: ${params.invoiceId}`);
-  }
+    if (isNaN(invoiceId)) {
+        throw new Error("Invalid Invoice ID");
+    }
+    let result;
 
-  // Auth validation
-  const { userId, orgId } = await auth();
-
-  if (!userId) {
-    return notFound();
-  }
-
-  try {
-    const query = db
-      .select()
-      .from(Invoices)
-      .innerJoin(Customers, eq(Invoices.customerId, Customers.id))
-      .limit(1);
-
-    // Build the where clause based on authentication context
-    const whereClause = orgId
-      ? and(eq(Invoices.id, invoiceId), eq(Invoices.organizationId, orgId))
-      : and(
-          eq(Invoices.id, invoiceId),
-          eq(Invoices.userId, userId),
-          isNull(Invoices.organizationId)
-        );
-
-    const [result] = await query.where(whereClause);
-
-    if (!result) {
-      return notFound();
+    if ( orgId ) {
+        [result] = await db
+            .select()
+            .from(Invoices)
+            .innerJoin(Customers, eq(Invoices.customerId, Customers.id))
+            .where(
+                and(
+                    eq(Invoices.id, invoiceId),
+                    eq(Invoices.organizationId, orgId)
+                )
+            )
+            .limit(1);
+    }else {
+        [result] = await db
+            .select()
+            .from(Invoices)
+            .innerJoin(Customers, eq(Invoices.customerId, Customers.id))
+            .where(
+                and(
+                    eq(Invoices.id, invoiceId),
+                    eq(Invoices.userId, userId),
+                    isNull(Invoices.organizationId)
+                )
+            )
+            .limit(1);
     }
 
-    // Type-safe transformation of the result
-    const invoice = {
-      ...result.invoices,
-      customer: result.customers,
-    };
 
-    return <Invoice invoice={invoice} />;
-  } catch (error) {
-    console.error("Failed to fetch invoice:", error);
-    throw new Error("Failed to fetch invoice data");
-  }
+    if (!result) {
+        notFound();
+    }
+
+    const invoices = {
+        ...result.invoices,
+        customer: result.customers
+    }
+
+    return <Invoice invoice={invoices} />;
 }
+
