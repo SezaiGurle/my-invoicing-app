@@ -7,7 +7,13 @@ import { eq, and, isNull } from "drizzle-orm";
 
 import Invoice from "./Invoice";
 
-export default async function InvoicePage({ params }: { params: { invoiceId: string } }) {
+interface PageProps {
+    params: {
+        invoiceId: string;
+    };
+}
+
+export default async function InvoicePage({ params }: PageProps) {
     const { userId, orgId } = await auth();
 
     // Eğer kullanıcı yoksa `notFound` sayfasına yönlendir
