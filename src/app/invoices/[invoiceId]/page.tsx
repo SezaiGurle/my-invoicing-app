@@ -5,12 +5,10 @@ import { Customers, Invoices } from "@/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import Invoice from "./Invoice";
 
-
-
 // Define the params interface following Next.js 13+ conventions
 interface InvoicePageProps {
   params: {
-    invoiceId: string;
+    invoiceId: string; // Ensure this matches the route structure
   };
   searchParams?: { [key: string]: string | string[] | undefined };
 }
