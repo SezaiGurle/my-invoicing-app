@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
-import { and, eq, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
 import { db } from "@/db";
@@ -19,9 +19,8 @@ export default async function InvoicePage({
     throw new Error("Invalid Invoice ID");
   }
 
-  // Displaying all invoices for public demo
-
-  let [result]: Array<{
+  // Veritabanı sorgusuyla bir sonuç alıyoruz
+  const [result]: Array<{
     invoices: typeof Invoices.$inferSelect;
     customers: typeof Customers.$inferSelect;
   }> = await db
@@ -30,32 +29,8 @@ export default async function InvoicePage({
     .innerJoin(Customers, eq(Invoices.customerId, Customers.id))
     .limit(1);
 
-  // if (orgId) {
-  //   [result] = await db
-  //     .select()
-  //     .from(Invoices)
-  //     .innerJoin(Customers, eq(Invoices.customerId, Customers.id))
-  //     .where(
-  //       and(eq(Invoices.id, invoiceId), eq(Invoices.organizationId, orgId)),
-  //     )
-  //     .limit(1);
-  // } else {
-  //   [result] = await db
-  //     .select()
-  //     .from(Invoices)
-  //     .innerJoin(Customers, eq(Invoices.customerId, Customers.id))
-  //     .where(
-  //       and(
-  //         eq(Invoices.id, invoiceId),
-  //         eq(Invoices.userId, userId),
-  //         isNull(Invoices.organizationId),
-  //       ),
-  //     )
-  //     .limit(1);
-  // }
-
   if (!result) {
-    notFound();
+    return notFound();
   }
 
   const invoice = {
