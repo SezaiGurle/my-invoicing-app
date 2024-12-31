@@ -19,8 +19,7 @@ export default async function InvoicePage({ params }: PageProps) {
 
   if (!userId) return notFound();
 
-  const { invoiceId: rawInvoiceId } = params; // Do not await params
-  const invoiceId = Number.parseInt(rawInvoiceId);
+  const invoiceId = Number.parseInt(params.invoiceId);
 
   if (isNaN(invoiceId)) {
     throw new Error("Invalid Invoice ID");
