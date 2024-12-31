@@ -1,75 +1,67 @@
-import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
+import { and, eq, isNull } from "drizzle-orm";
+import { notFound } from "next/navigation";
 
 import { db } from "@/db";
 import { Customers, Invoices } from "@/db/schema";
-import { eq, and, isNull } from "drizzle-orm";
-
 import Invoice from "./Invoice";
 
-interface InvoicePageParams {
-    invoiceId: string;
-}
+export default async function InvoicePage({
+  params,
+}: { params: { invoiceId: string } }) {
+  const { userId } = await auth();
 
-interface InvoicePageProps {
-    params: InvoicePageParams;
-}
+  if (!userId) return;
 
-export default async function InvoicePage({ params }: InvoicePageProps) {
-    const { userId, orgId } = await auth();
+  const invoiceId = Number.parseInt(params.invoiceId);
 
-    // Kullanıcı kimliği yoksa 404 döndür
-    if (!userId) return notFound();
+  if (Number.isNaN(invoiceId)) {
+    throw new Error("Invalid Invoice ID");
+  }
 
-    // params'ı bekle
-    const { invoiceId: rawInvoiceId } = await params; // params'ı async bekliyoruz
-    const invoiceId = Number.parseInt(rawInvoiceId);
+  // Displaying all invoices for public demo
 
-    // Geçersiz ID'yi kontrol et
-    if (isNaN(invoiceId)) {
-        throw new Error("Invalid Invoice ID");
-    }
+  let [result]: Array<{
+    invoices: typeof Invoices.$inferSelect;
+    customers: typeof Customers.$inferSelect;
+  }> = await db
+    .select()
+    .from(Invoices)
+    .innerJoin(Customers, eq(Invoices.customerId, Customers.id))
+    .limit(1);
 
-    let result;
+  // if (orgId) {
+  //   [result] = await db
+  //     .select()
+  //     .from(Invoices)
+  //     .innerJoin(Customers, eq(Invoices.customerId, Customers.id))
+  //     .where(
+  //       and(eq(Invoices.id, invoiceId), eq(Invoices.organizationId, orgId)),
+  //     )
+  //     .limit(1);
+  // } else {
+  //   [result] = await db
+  //     .select()
+  //     .from(Invoices)
+  //     .innerJoin(Customers, eq(Invoices.customerId, Customers.id))
+  //     .where(
+  //       and(
+  //         eq(Invoices.id, invoiceId),
+  //         eq(Invoices.userId, userId),
+  //         isNull(Invoices.organizationId),
+  //       ),
+  //     )
+  //     .limit(1);
+  // }
 
-    // Organizasyon ID'sine göre sorgu yap
-    if (orgId) {
-        [result] = await db
-            .select()
-            .from(Invoices)
-            .innerJoin(Customers, eq(Invoices.customerId, Customers.id))
-            .where(
-                and(
-                    eq(Invoices.id, invoiceId),
-                    eq(Invoices.organizationId, orgId)
-                )
-            )
-            .limit(1);
-    } else {
-        // Kullanıcı ID'sine göre sorgu yap
-        [result] = await db
-            .select()
-            .from(Invoices)
-            .innerJoin(Customers, eq(Invoices.customerId, Customers.id))
-            .where(
-                and(
-                    eq(Invoices.id, invoiceId),
-                    eq(Invoices.userId, userId),
-                    isNull(Invoices.organizationId)
-                )
-            )
-            .limit(1);
-    }
+  if (!result) {
+    notFound();
+  }
 
-    // Sonuç bulunamazsa 404 döndür
-    if (!result) {
-        return notFound();
-    }
+  const invoice = {
+    ...result.invoices,
+    customer: result.customers,
+  };
 
-    const invoices = {
-        ...result.invoices,
-        customer: result.customers
-    };
-
-    return <Invoice invoice={invoices} />;
+  return <Invoice invoice={invoice} />;
 }
