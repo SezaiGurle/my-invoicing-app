@@ -7,7 +7,7 @@ import { eq, and, isNull } from "drizzle-orm";
 
 import Invoice from "./Invoice";
 
-// Define the expected shape of the params (invoiceId)
+// Define the expected shape of the params
 interface PageProps {
   params: {
     invoiceId: string;
@@ -19,7 +19,7 @@ export default async function InvoicePage({ params }: PageProps) {
 
   if (!userId) return notFound();
 
-  const invoiceId = Number.parseInt(params.invoiceId);
+  const invoiceId = parseInt(params.invoiceId, 10);
 
   if (isNaN(invoiceId)) {
     throw new Error("Invalid Invoice ID");
@@ -55,12 +55,12 @@ export default async function InvoicePage({ params }: PageProps) {
   }
 
   if (!result) {
-    notFound();
+    return notFound();
   }
 
   const invoices = {
     ...result.invoices,
-    customer: result.customers
+    customer: result.customers,
   };
 
   return <Invoice invoice={invoices} />;
