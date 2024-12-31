@@ -5,7 +5,7 @@ import { auth } from '@clerk/nextjs/server';
 import Stripe from 'stripe';
 import { Resend } from 'resend';
 
-import { Customers, Invoices, Status } from '@/db/schema';
+import { Customers, Invoices } from '@/db/schema';
 import { db } from '@/db';
 import { and, eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
@@ -38,7 +38,7 @@ export async function createAction(formData: FormData) {
             id: Customers.id
         });
 
-    const results = await db.insert(Invoices)
+    const [invoice] = await db.insert(Invoices)
         .values({
             value,
             description,
@@ -51,14 +51,14 @@ export async function createAction(formData: FormData) {
             id: Invoices.id
         });
 
-    const { data, error } = await resend.emails.send({
+    await resend.emails.send({
         from: 'S-G <info@email.sezaigurle.dev>',
         to: [email],
         subject: 'You Have a New Invoice',
-        react: InvoiceCreatedEmail({ invoiceId: results[0].id }),
+        react: InvoiceCreatedEmail({ invoiceId: invoice.id }),
     });
 
-    redirect(`/invoices/${results[0].id}`);
+    redirect(`/invoices/${invoice.id}`);
 }
 
 export async function updateStatusAction(formData: FormData) {
@@ -71,7 +71,7 @@ export async function updateStatusAction(formData: FormData) {
     const id = formData.get('id') as string;
     const status = formData.get('status') as string;
 
-    const results = await db.update(Invoices)
+    await db.update(Invoices)
         .set({ status })
         .where(
             and(
@@ -80,8 +80,7 @@ export async function updateStatusAction(formData: FormData) {
             )
         );
 
-    // Revalidation is now triggered via the new API route
-    const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'; // Ensure your app's base URL
+    const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'; 
     await fetch(`${origin}/api/revalidate?path=/invoices/${id}`);
 }
 
@@ -94,7 +93,7 @@ export async function deleteInvoiceAction(formData: FormData) {
 
     const id = formData.get('id') as string;
 
-    const results = await db.delete(Invoices)
+    await db.delete(Invoices)
         .where(
             and(
                 eq(Invoices.id, parseInt(id)),
