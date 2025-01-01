@@ -7,12 +7,12 @@ import { eq, and, isNull } from "drizzle-orm";
 
 import Invoice from "./Invoice";
 
-export default async function InvoicePage({
+export default async function Page({
     params,
 }: {
-    params: { invoiceId: string }
+    params: Promise<{ invoiceId: string }>
 }) {
-    // Authenticate user
+    const { invoiceId } = await params;
     const { userId, orgId } = await auth();
 
     // Handle unauthenticated access
@@ -21,9 +21,9 @@ export default async function InvoicePage({
     }
 
     // Parse invoiceId from params
-    const invoiceId = Number.parseInt(params.invoiceId, 10);
+    const invoiceIdNumber = Number.parseInt(invoiceId, 10);
 
-    if (isNaN(invoiceId)) {
+    if (isNaN(invoiceIdNumber)) {
         throw new Error("Invalid Invoice ID");
     }
 
@@ -37,7 +37,7 @@ export default async function InvoicePage({
             .innerJoin(Customers, eq(Invoices.customerId, Customers.id))
             .where(
                 and(
-                    eq(Invoices.id, invoiceId),
+                    eq(Invoices.id, invoiceIdNumber),
                     eq(Invoices.organizationId, orgId)
                 )
             )
@@ -49,7 +49,7 @@ export default async function InvoicePage({
             .innerJoin(Customers, eq(Invoices.customerId, Customers.id))
             .where(
                 and(
-                    eq(Invoices.id, invoiceId),
+                    eq(Invoices.id, invoiceIdNumber),
                     eq(Invoices.userId, userId),
                     isNull(Invoices.organizationId)
                 )
@@ -68,6 +68,5 @@ export default async function InvoicePage({
         customer: result.customers,
     };
 
-    // Render the Invoice component
     return <Invoice invoice={invoice} />;
 }
