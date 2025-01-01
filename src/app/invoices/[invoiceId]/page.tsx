@@ -7,12 +7,15 @@ import { eq, and, isNull } from "drizzle-orm";
 
 import Invoice from "./Invoice";
 
-// Define the expected type for params inline
-export default async function InvoicePage({
-    params,
-}: {
-    params: { invoiceId: string };
-}) {
+// Define PageProps based on your app's expected shape
+interface PageProps {
+    params: {
+        invoiceId: string;
+    };
+    searchParams?: Record<string, string | string[] | undefined>;
+}
+
+export default async function InvoicePage({ params }: PageProps) {
     const { userId, orgId } = await auth();
 
     // Redirect to `notFound` page if the user is not authenticated
