@@ -8,19 +8,25 @@ import { eq, and, isNull } from "drizzle-orm";
 import Invoice from "./Invoice";
 
 export default async function InvoicePage({ params }: { params: { invoiceId: string } }) {
+    // Authenticate user
     const { userId, orgId } = await auth();
 
-    if (!userId) return notFound();
+    // Handle unauthenticated access
+    if (!userId) {
+        return notFound();
+    }
 
-    const { invoiceId: rawInvoiceId } = await params; // Ensure `params` is awaited
-    const invoiceId = Number.parseInt(rawInvoiceId);
+    // Parse invoiceId from params
+    const invoiceId = Number.parseInt(params.invoiceId, 10);
 
     if (isNaN(invoiceId)) {
         throw new Error("Invalid Invoice ID");
     }
+
     let result;
 
-    if ( orgId ) {
+    // Fetch invoice based on orgId or userId
+    if (orgId) {
         [result] = await db
             .select()
             .from(Invoices)
@@ -32,7 +38,7 @@ export default async function InvoicePage({ params }: { params: { invoiceId: str
                 )
             )
             .limit(1);
-    }else {
+    } else {
         [result] = await db
             .select()
             .from(Invoices)
@@ -47,16 +53,17 @@ export default async function InvoicePage({ params }: { params: { invoiceId: str
             .limit(1);
     }
 
-
+    // Handle missing invoice
     if (!result) {
-        notFound();
+        return notFound();
     }
 
-    const invoices = {
+    // Construct invoice object
+    const invoice = {
         ...result.invoices,
-        customer: result.customers
-    }
+        customer: result.customers,
+    };
 
-    return <Invoice invoice={invoices} />;
+    // Render the Invoice component
+    return <Invoice invoice={invoice} />;
 }
-
