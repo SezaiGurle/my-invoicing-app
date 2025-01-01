@@ -7,8 +7,12 @@ import { eq, and, isNull } from "drizzle-orm";
 
 import Invoice from "./Invoice";
 
-// Use the inferred PageProps type from Next.js
-export default async function InvoicePage({ params }: { params: { invoiceId: string } }) {
+// Define the expected type for params inline
+export default async function InvoicePage({
+    params,
+}: {
+    params: { invoiceId: string };
+}) {
     const { userId, orgId } = await auth();
 
     // Redirect to `notFound` page if the user is not authenticated
