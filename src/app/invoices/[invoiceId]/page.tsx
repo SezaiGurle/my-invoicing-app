@@ -7,15 +7,11 @@ import { eq, and, isNull } from "drizzle-orm";
 
 import Invoice from "./Invoice";
 
-// Next.js sayfa bileşeni için doğru tip tanımlaması
-interface PageProps {
-    params: {
-        invoiceId: string;
-    };
-    searchParams: { [key: string]: string | string[] | undefined };
-}
-
-export default async function InvoicePage({ params }: PageProps) {
+export default async function InvoicePage({
+    params,
+}: {
+    params: { invoiceId: string }
+}) {
     // Authenticate user
     const { userId, orgId } = await auth();
 
