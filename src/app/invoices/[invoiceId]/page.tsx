@@ -7,19 +7,14 @@ import { eq, and, isNull } from "drizzle-orm";
 
 import Invoice from "./Invoice";
 
-interface PageProps {
-    params: {
-        invoiceId: string;
-    };
-}
-
-export default async function InvoicePage({ params }: PageProps) {
+// Use the inferred PageProps type from Next.js
+export default async function InvoicePage({ params }: { params: { invoiceId: string } }) {
     const { userId, orgId } = await auth();
 
-    // Eğer kullanıcı yoksa `notFound` sayfasına yönlendir
+    // Redirect to `notFound` page if the user is not authenticated
     if (!userId) return notFound();
 
-    // `params`'den gelen invoiceId'yi doğrula
+    // Validate the `invoiceId` from params
     const invoiceId = Number(params.invoiceId);
 
     if (isNaN(invoiceId)) {
@@ -29,7 +24,7 @@ export default async function InvoicePage({ params }: PageProps) {
     let result;
 
     if (orgId) {
-        // Organizasyon ID'si mevcutsa sorguyu buna göre yap
+        // Query based on the organization ID
         [result] = await db
             .select()
             .from(Invoices)
@@ -42,7 +37,7 @@ export default async function InvoicePage({ params }: PageProps) {
             )
             .limit(1);
     } else {
-        // Organizasyon ID'si yoksa sorguyu kullanıcı ID'sine göre yap
+        // Query based on the user ID if organization ID is not present
         [result] = await db
             .select()
             .from(Invoices)
@@ -57,7 +52,7 @@ export default async function InvoicePage({ params }: PageProps) {
             .limit(1);
     }
 
-    // Eğer fatura bulunamazsa `notFound` sayfasına yönlendir
+    // Redirect to `notFound` page if no invoice is found
     if (!result) {
         return notFound();
     }
@@ -67,6 +62,6 @@ export default async function InvoicePage({ params }: PageProps) {
         customer: result.customers,
     };
 
-    // Fatura bileşenini render et
+    // Render the invoice component
     return <Invoice invoice={invoiceData} />;
 }
